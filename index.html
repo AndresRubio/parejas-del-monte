@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Parejas del Monte</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Layout: cuaderno de campo — cabecera compacta, marcador en fila, tablero de cartas centrado */
+:root{
+  --bg:#eef0e6; --paper:#fbfcf6; --ink:#223026; --muted:#5d6b5f;
+  --moss:#3f6b46; --moss-soft:#d7e3d2; --ochre:#c58a2b; --line:#c9d1c2;
+  --back1:#3f6b46; --back2:#4d7d55;
+  --display:"Fraunces", Georgia, "Times New Roman", serif;
+  --body:"Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141a16; --paper:#1d251f; --ink:#e6ece2; --muted:#9fae9f;
+  --moss:#7fb287; --moss-soft:#263a2b; --ochre:#e0a94a; --line:#2f3b32;
+  --back1:#2b4a31; --back2:#345a3b; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a16; --paper:#1d251f; --ink:#e6ece2; --muted:#9fae9f;
+  --moss:#7fb287; --moss-soft:#263a2b; --ochre:#e0a94a; --line:#2f3b32;
+  --back1:#2b4a31; --back2:#345a3b; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.5}
+.wrap{max-width:720px;margin:0 auto;padding-block:24px 40px;
+  padding-left:max(16px, env(safe-area-inset-left,0px));padding-right:max(16px, env(safe-area-inset-right,0px));
+  display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(1.8rem,5vw,2.4rem);line-height:1.05;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.sub{margin:4px 0 0;color:var(--muted);font-size:.95rem}
+.levels{display:flex;gap:6px;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:4px}
+.levels button{font:inherit;font-size:.9rem;border:0;background:transparent;color:var(--muted);padding:6px 14px;border-radius:999px;cursor:pointer}
+.levels button[aria-pressed="true"]{background:var(--moss);color:var(--paper);font-weight:700}
+.stats{display:flex;flex-wrap:wrap;gap:8px 24px;align-items:baseline;border-block:1px solid var(--line);padding-block:10px}
+.stat{display:flex;gap:8px;align-items:baseline}
+.stat span:first-child{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.stat b{font-family:var(--display);font-size:1.35rem;font-variant-numeric:tabular-nums}
+.stats .grow{flex:1}
+.btn{font:inherit;font-weight:700;font-size:.9rem;border:1px solid var(--moss);color:var(--moss);background:transparent;padding:7px 14px;border-radius:8px;cursor:pointer}
+.btn:hover{background:var(--moss-soft)}
+.btn.solid{background:var(--moss);color:var(--paper)}
+button:focus-visible{outline:3px solid var(--ochre);outline-offset:2px}
+.board{display:grid;gap:10px;grid-template-columns:repeat(var(--cols),1fr);perspective:900px}
+.card{position:relative;aspect-ratio:3/4;max-width:100%;border:0;padding:0;background:transparent;cursor:pointer;font:inherit;color:inherit}
+.inner{position:absolute;inset:0;transition:transform .45s cubic-bezier(.3,.7,.3,1);transform-style:preserve-3d}
+.card.up .inner,.card.done .inner{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;border-radius:10px;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.back{background:
+  repeating-linear-gradient(45deg,var(--back1) 0 8px,var(--back2) 8px 16px);
+  box-shadow:inset 0 0 0 4px var(--back1), inset 0 0 0 5px color-mix(in srgb,var(--paper) 35%,transparent)}
+.back::after{content:"";width:34%;aspect-ratio:1;border-radius:50%;border:2px solid color-mix(in srgb,var(--paper) 45%,transparent)}
+.front{background:var(--paper);border:1px solid var(--line);transform:rotateY(180deg)}
+.front .sym{font-size:clamp(1.6rem,7vw,2.6rem);line-height:1}
+.front .name{font-size:clamp(.62rem,2.2vw,.8rem);color:var(--muted);text-align:center;padding:0 4px}
+.card.done .front{background:var(--moss-soft);border-color:var(--moss)}
+.card.done .name{color:var(--moss);font-weight:700}
+.card.miss .front{animation:shake .35s}
+@keyframes shake{25%{transform:rotateY(180deg) translateX(-4px)}75%{transform:rotateY(180deg) translateX(4px)}}
+.win{background:var(--paper);border:1px solid var(--moss);border-radius:12px;padding:18px 20px;display:flex;flex-wrap:wrap;gap:12px;align-items:center;justify-content:space-between}
+.win h2{font-family:var(--display);margin:0;font-size:1.4rem}
+.win p{margin:2px 0 0;color:var(--muted)}
+.hint{color:var(--muted);font-size:.85rem;margin:0}
+[hidden]{display:none!important}
+@media (prefers-reduced-motion: reduce){.inner{transition:none}.card.miss .front{animation:none}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Parejas del Monte</h1>
+      <p class="sub">Da la vuelta a dos cartas. Si son iguales, se quedan boca arriba.</p>
+    </div>
+    <div class="levels" role="group" aria-label="Dificultad">
+      <button id="lv6" data-pairs="6" aria-pressed="false">Fácil</button>
+      <button id="lv8" data-pairs="8" aria-pressed="true">Normal</button>
+      <button id="lv12" data-pairs="12" aria-pressed="false">Difícil</button>
+    </div>
+  </header>
+
+  <div class="stats" aria-live="polite">
+    <div class="stat"><span>Intentos</span><b id="moves">0</b></div>
+    <div class="stat"><span>Parejas</span><b id="pairs">0/8</b></div>
+    <div class="stat"><span>Tiempo</span><b id="time">0:00</b></div>
+    <div class="stat"><span>Récord</span><b id="best">—</b></div>
+    <div class="grow"></div>
+    <button class="btn" id="restart">Nueva partida</button>
+  </div>
+
+  <div class="win" id="win" hidden>
+    <div>
+      <h2>¡Todas encontradas!</h2>
+      <p id="winText"></p>
+    </div>
+    <button class="btn solid" id="again">Jugar otra vez</button>
+  </div>
+
+  <div class="board" id="board"></div>
+  <p class="hint">El récord es el menor número de intentos en cada nivel, y se guarda en este navegador.</p>
+</div>
+
+<script>
+const DECK=[
+  ["🦌","Corzo"],["🦅","Águila"],["🦉","Búho"],["🐗","Jabalí"],["🦊","Zorro"],["🐿️","Ardilla"],
+  ["🌲","Pino"],["🍄","Seta"],["🌻","Girasol"],["🐝","Abeja"],["🦋","Mariposa"],["🐟","Trucha"],
+  ["🌰","Castaña"],["🍇","Uvas"]
+];
+const $=id=>document.getElementById(id);
+let pairsN=8, first=null, lock=false, moves=0, found=0, t0=0, timer=null;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a}
+function cols(){const narrow=window.innerWidth<520;
+  if(pairsN===6) return narrow?3:4;
+  if(pairsN===8) return 4;
+  return narrow?4:6;}
+function fmt(s){return Math.floor(s/60)+":"+String(s%60).padStart(2,"0")}
+function getBest(){try{return localStorage.getItem("parejas-best-"+pairsN)}catch(e){return null}}
+function setBest(v){try{localStorage.setItem("parejas-best-"+pairsN,v)}catch(e){}}
+function showBest(){const b=getBest();$("best").textContent=b?b+" int.":"—"}
+
+function start(){
+  clearInterval(timer);timer=null;t0=0;first=null;lock=false;moves=0;found=0;
+  $("moves").textContent=0;$("pairs").textContent="0/"+pairsN;$("time").textContent="0:00";
+  $("win").hidden=true;showBest();
+  const pick=shuffle(DECK.slice()).slice(0,pairsN);
+  const cards=shuffle(pick.concat(pick).map((c,i)=>({sym:c[0],name:c[1],id:i})));
+  const board=$("board");board.innerHTML="";board.style.setProperty("--cols",cols());
+  cards.forEach((c,i)=>{
+    const b=document.createElement("button");b.className="card";b.id="c"+i;b.dataset.sym=c.sym;
+    b.setAttribute("aria-label","Carta boca abajo");
+    b.innerHTML='<div class="inner"><div class="face back"></div><div class="face front"><span class="sym" aria-hidden="true">'+c.sym+'</span><span class="name">'+c.name+'</span></div></div>';
+    b.dataset.name=c.name;b.addEventListener("click",()=>flip(b));board.appendChild(b);
+  });
+}
+function tick(){$("time").textContent=fmt(Math.floor((Date.now()-t0)/1000))}
+function flip(b){
+  if(lock||b.classList.contains("up")||b.classList.contains("done"))return;
+  if(!timer){t0=Date.now();timer=setInterval(tick,500)}
+  b.classList.add("up");b.setAttribute("aria-label",b.dataset.name);
+  if(!first){first=b;return}
+  moves++;$("moves").textContent=moves;
+  const a=first;first=null;
+  if(a.dataset.sym===b.dataset.sym){
+    setTimeout(()=>{a.classList.add("done");b.classList.add("done");a.classList.remove("up");b.classList.remove("up")},350);
+    found++;$("pairs").textContent=found+"/"+pairsN;
+    if(found===pairsN) win();
+  }else{
+    lock=true;
+    setTimeout(()=>{a.classList.add("miss");b.classList.add("miss")},420);
+    setTimeout(()=>{[a,b].forEach(x=>{x.classList.remove("up","miss");x.setAttribute("aria-label","Carta boca abajo")});lock=false},950);
+  }
+}
+function win(){
+  clearInterval(timer);timer=null;tick();
+  const secs=Math.floor((Date.now()-t0)/1000);const prev=getBest();
+  let txt="Lo has hecho en "+moves+" intentos y "+fmt(secs)+".";
+  if(!prev||moves<+prev){setBest(moves);txt+=" ¡Nuevo récord en este nivel!"}
+  else txt+=" Tu récord aquí es de "+prev+" intentos.";
+  $("winText").textContent=txt;showBest();
+  setTimeout(()=>{$("win").hidden=false},500);
+}
+document.querySelectorAll(".levels button").forEach(btn=>btn.addEventListener("click",()=>{
+  document.querySelectorAll(".levels button").forEach(x=>x.setAttribute("aria-pressed","false"));
+  btn.setAttribute("aria-pressed","true");pairsN=+btn.dataset.pairs;start();
+}));
+$("restart").addEventListener("click",start);
+$("again").addEventListener("click",start);
+window.addEventListener("resize",()=>$("board").style.setProperty("--cols",cols()));
+start();
+</script>
+
+</body>
+</html>
